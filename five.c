@@ -1,18 +1,23 @@
 #include <limits.h>
 #include <malloc.h>
-#include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <tgmath.h>
 #include <time.h>
-#define MAX_DEPTH 4
+#define MAX_DEPTH 5
+#define SIZE 15
+#define COVER_RANGE 3
 int *game, *cov, *cov_1;
-int n, m, k, i, j, l, c, p, r, s, t, u, v, w, x, y, z, col = 15, row = 15,
-                                                       min, con, space, brk = 0;
-long long maxx;
+int n, m, k, i, j, l, c, p, r, s, t, u, v, w, x, y, z,
+    col = SIZE, row = SIZE, min, con, space, brk = 0, pmk = 0;
+long long maxx,ttime;
+double cost;
+clock_t stime, etime;
 typedef struct {
   short mov[6];
+  int size;
   int value;
   char name[12];
 } movn;
@@ -20,6 +25,7 @@ typedef struct {
   int lx;
   int ly;
 } bestmove;
+bestmove pastmove[SIZE * SIZE];
 int check();
 int turn();
 int screen();
@@ -27,73 +33,72 @@ int pmove();
 int rmove();
 long long scor();
 int cover();
-long long minimax(int aplha, int beta, int depth, int player);
+long long minimax(long long alpha, long long beta, int depth, int player);
 void win();
 void lose();
 movn load[] = {
     // 必赢
-    {{1, 1, 1, 1, 1}, -2000000000, "五"},
+    {{1, 1, 1, 1, 1}, 5, -2000000000, "五"},
     // 严重威胁
-    {{0, 1, 1, 1, 1, 0}, -100000000, "活四"},
-    {{1, 1, 1, 1, 0}, -500000000, "活四"},
-    {{1, 1, 1, 0, 1}, -10000000, "活四"},
-    {{1, 0, 1, 1, 1}, -10000000, "活四"},
-    {{1, 1, 0, 1, 1}, -10000000, "活四"},
-    {{1, 1, 1, 1, 0}, -10000000, "活四"},
-    {{0, 1, 1, 1, 1}, -10000000, "活四"},
+    {{0, 1, 1, 1, 1, 0}, 6, -100000000, "活四"},
+    {{1, 1, 1, 1, 0}, 5, -500000000, "活四"},
+    {{1, 1, 1, 0, 1}, 5, -10000000, "活四"},
+    {{1, 0, 1, 1, 1}, 5, -10000000, "活四"},
+    {{1, 1, 0, 1, 1}, 5, -10000000, "活四"},
+    {{0, 1, 1, 1, 1}, 5, -10000000, "活四"},
     // 威胁
-    {{0, 1, 1, 1, 0}, -1000000, "活三"},
-    {{1, 1, 1, 1}, -500000, "死四"},
-    {{1, 1, 0, 1}, -100000, "跳四"},
-    {{1, 0, 1, 1}, -100000, "跳四"},
-    {{0, 1, 1, 1, 2}, -100000, "三"},
-    {{2, 1, 1, 1, 0}, -100000, "三"},
-    {{1, 1, 1}, -1000, "死三"},
+    {{0, 1, 1, 1, 0}, 5, -1000000, "活三"},
+    {{1, 1, 1, 1}, 4, -500000, "死四"},
+    {{1, 1, 0, 1}, 4, -100000, "跳四"},
+    {{1, 0, 1, 1}, 4, -100000, "跳四"},
+    {{0, 1, 1, 1, 2}, 5, -100000, "三"},
+    {{2, 1, 1, 1, 0}, 5, -100000, "三"},
+    {{1, 1, 1}, 3, -800, "死三"},
     // 一般
-    {{0, 1, 1, 0}, -20000, "活二"},
-    {{0, 1, 0, 1, 0}, -1000, "活二"},
-    {{0, 1, 1, 2}, -100, "活二"},
-    {{2, 1, 1, 0}, -100, "活二"},
-    {{2, 1, 0, 1}, -100, "活二"},
-    {{1, 0, 1, 2}, -100, "活二"},
-    {{1, 1}, -10, "死二"},
-    {{0, 1, 0}, -10, "活一"},
-    {{0, 1, 2}, -5, "活一"},
-    {{2, 1, 0}, -5, "活一"},
-    {{1}, -1, "死一"},
+    {{0, 1, 1, 0}, 4, -1000, "活二"},
+    {{0, 1, 0, 1, 0}, 5, -1000, "活二"},
+    {{0, 1, 1, 2}, 4, -100, "活二"},
+    {{2, 1, 1, 0}, 4, -100, "活二"},
+    {{2, 1, 0, 1}, 4, -100, "活二"},
+    {{1, 0, 1, 2}, 4, -100, "活二"},
+    {{1, 1}, 2, -10, "死二"},
+    {{0, 1, 0}, 3, -10, "活一"},
+    {{0, 1, 2}, 3, -5, "活一"},
+    {{2, 1, 0}, 3, -5, "活一"},
+    {{1}, 1, -1, "死一"},
     // 必赢
-    {{2, 2, 2, 2, 2}, 2000000000, "五"},
+    {{2, 2, 2, 2, 2}, 5, 2000000000, "五"},
     // 严重威胁
-    {{0, 2, 2, 2, 2, 0}, 80000000, "活四"},
-    {{2, 2, 2, 2, 0}, 480000000, "活四"},
-    {{2, 2, 2, 0, 2}, 8000000, "活四"},
-    {{2, 0, 2, 2, 2}, 8000000, "活四"},
-    {{2, 2, 0, 2, 2}, 8000000, "活四"},
-    {{2, 2, 2, 2, 0}, 8000000, "活四"},
-    {{0, 2, 2, 2, 2}, 8000000, "活四"},
+    {{0, 2, 2, 2, 2, 0}, 6, 100000000, "活四"},
+    {{2, 2, 2, 2, 0}, 5, 50000000, "活四"},
+    {{2, 2, 2, 0, 2}, 5, 10000000, "活四"},
+    {{2, 0, 2, 2, 2}, 5, 10000000, "活四"},
+    {{2, 2, 0, 2, 2}, 5, 10000000, "活四"},
+    {{0, 2, 2, 2, 2}, 5, 10000000, "活四"},
     // 威胁
-    {{0, 2, 2, 2, 0}, 800000, "活三"},
-    {{2, 2, 2, 2}, 480000, "死四"},
-    {{2, 2, 0, 2}, 80000, "跳四"},
-    {{2, 0, 2, 2}, 80000, "跳四"},
-    {{0, 2, 2, 2, 1}, 80000, "三"},
-    {{1, 2, 2, 2, 0}, 80000, "三"},
-    {{2, 2, 2}, 800, "死三"},
+    {{0, 2, 2, 2, 0}, 5, 1000000, "活三"},
+    {{2, 2, 2, 2}, 4, 500000, "死四"},
+    {{2, 2, 0, 2}, 4, 100000, "跳四"},
+    {{2, 0, 2, 2}, 4, 100000, "跳四"},
+    {{0, 2, 2, 2, 1}, 5, 100000, "三"},
+    {{1, 2, 2, 2, 0}, 5, 100000, "三"},
+    {{2, 2, 2}, 3, 1000, "死三"},
     // 一般
-    {{0, 2, 2, 0}, 18000, "活二"},
-    {{0, 2, 0, 2, 0}, 800, "活二"},
-    {{0, 2, 2, 1}, 80, "活二"},
-    {{1, 2, 2, 0}, 80, "活二"},
-    {{1, 2, 0, 2}, 80, "活二"},
-    {{2, 0, 2, 1}, 80, "活二"},
-    {{2, 2}, 8, "死二"},
-    {{0, 2, 0}, 8, "活一"},
-    {{0, 2, 1}, 5, "活一"},
-    {{1, 2, 0}, 5, "活一"},
-    {{2}, 1, "死一"},
+    {{0, 2, 2, 0}, 4, 2000, "活二"},
+    {{0, 2, 0, 2, 0}, 5, 1000, "活二"},
+    {{0, 2, 2, 1}, 4, 100, "活二"},
+    {{1, 2, 2, 0}, 4, 100, "活二"},
+    {{1, 2, 0, 2}, 4, 100, "活二"},
+    {{2, 0, 2, 1}, 4, 100, "活二"},
+    {{2, 2}, 2, 10, "死二"},
+    {{0, 2, 0}, 3, 10, "活一"},
+    {{0, 2, 1}, 3, 5, "活一"},
+    {{1, 2, 0}, 3, 5, "活一"},
+    {{2}, 1, 1, "死一"},
 };
 int main() {
   srand(time(NULL));
+  memset(pastmove, -1, sizeof(pastmove));
   game = (int *)malloc(row * col * sizeof(int)); // 棋盘
   cov = (int *)malloc(row * col * sizeof(int));  // 覆盖
   cov_1 = (int *)malloc(row * col * sizeof(int));
@@ -106,41 +111,72 @@ int main() {
     }
   }
   turn();
+  for (i = 0; i < row; i++) {
+    for (j = 0; j < col; j++) {
+      game[i * col + j] = 0;
+    }
+  }
+  FILE *file = fopen("pastmove.txt", "w");
+  for (y = 0; y < pmk; y++) {
+    fprintf(file, "%d %d\n", pastmove[y].lx, pastmove[y].ly);
+    if (y % 2 == 0) {
+      game[pastmove[y].lx * col + pastmove[y].ly] = 1;
+    } else
+      game[pastmove[y].lx * col + pastmove[y].ly] = 2;
+    for (i = 0; i < row; i++) {
+      for (j = 0; j < col; j++) {
+        if (game[i * col + j] == 0) {
+          fprintf(file, "  ");
+        } else if (game[i * col + j] == 1) {
+          fprintf(file, "X ");
+        } else
+          fprintf(file, "O ");
+      }
+      fprintf(file, "\n");
+    }
+    fprintf(file,"%lld\n",scor());
+  }
+  fclose(file);
+  free(game);
+  free(cov);
+  free(cov_1);
   return 0;
 }
 int turn() {
   screen();
   pmove();
+  pmk++;
   screen();
-  if(check()!=0){
-    switch(check()){
-      case 1:
-        win();
-        break;
-      case 2:
-        lose();
-        break;
-      case 3:
-        printf("Draw\n");
-        break;
-    } 
+  if (check() != 0) {
+    switch (check()) {
+    case 1:
+      win();
+      break;
+    case 2:
+      lose();
+      break;
+    case 3:
+      printf("Draw\n");
+      break;
+    }
     return 0;
   }
   rmove();
-  if(check()!=0){
-      switch(check()){
-        case 1:
-          win();
-          break;
-        case 2:
-          lose();
-          break;
-        case 3:
-          printf("Draw\n");
-          break;
-      } 
-      return 0;
+  pmk++;
+  if (check() != 0) {
+    switch (check()) {
+    case 1:
+      win();
+      break;
+    case 2:
+      lose();
+      break;
+    case 3:
+      printf("Draw\n");
+      break;
     }
+    return 0;
+  }
   return turn();
 }
 int check() {
@@ -164,13 +200,7 @@ int check() {
             }
           }
           if (count >= 5) {
-            if (colour == 1) {
-              win();
-              return 1;
-            } else {
-              lose();
-              return 2;
-            }
+            return colour;
           }
         }
       }
@@ -206,14 +236,30 @@ int screen() {
     }
     printf("\n");
   }
+  for (i = 0; i < row; i++) {
+    for (j = 0; j < col; j++) {
+      if(cov_1[i * col + j]<10){
+        printf("%d ", cov_1[i * col + j]);
+      }
+      else{
+        printf("%d", cov_1[i * col + j]);
+      }
+    }
+    printf("\n");
+  }
+  printf("time:%lfs",cost);
+  printf("score:%lld", scor());
+  printf("caltime:%lld\n",ttime);
   return 0;
 }
 int pmove() {
   printf("Player turn:");
   scanf("%d %d", &x, &y);
-  if (game[x * col + y] == 0) {
+  if (game[x * col + y] == 0&&x>=0&&x<row&&y>=0&&y<col) {
     game[x * col + y] = 1;
     space--;
+    pastmove[pmk].lx = x;
+    pastmove[pmk].ly = y;
   } else {
     printf("Invalid move\n");
     return pmove();
@@ -224,72 +270,77 @@ int rmove() {
   maxx = LLONG_MIN;
   int k = 0;
   cover();
-  for (int i = 0; i < row; i++){
-    for (int j = 0; j < col; j++){
-      cov_1[i * col + j] = cov[i * col + j];
-    }
-  }
-  bestmove best[col*row];
+  memcpy(cov_1, cov, row * col * sizeof(int));
+  bestmove best[col * row];
   memset(best, -1, sizeof(best));
+  stime=clock();
+  ttime=0;
   for (int i = 0; i < row; i++) {
     for (int j = 0; j < col; j++) {
-      if (cov_1[i * col + j] == 1 && game[i * col + j] == 0) {
+      if (cov_1[i * col + j] != 0 && game[i * col + j] == 0) {
         game[i * col + j] = 2;
         space--;
-        long long value = minimax(LLONG_MIN, LLONG_MAX, MAX_DEPTH, 1);
+        long long value = minimax(INT_MIN, INT_MAX, MAX_DEPTH, 1);
         game[i * col + j] = 0;
         space++;
-        if (value > maxx){
+        if (value > maxx) {
           maxx = value;
           memset(best, -1, sizeof(best));
           best[0].lx = i;
           best[0].ly = j;
-          k=1;
+          k = 1;
         }
-        if (value == maxx){
-            best[k].lx = i;
-            best[k].ly = j;
-            k++;
+        if (value == maxx) {
+          best[k].lx = i;
+          best[k].ly = j;
+          k++;
         }
       }
     }
   }
   if (k > 1) {
-      int idx = rand() % k;  // 只调用一次rand
-      game[best[idx].lx * col + best[idx].ly] = 2;
-      printf("%d %d\n", best[idx].lx, best[idx].ly);
-  }
-  else{
+    int idx = rand() % k; // 只调用一次rand
+    game[best[idx].lx * col + best[idx].ly] = 2;
+    pastmove[pmk].lx = best[idx].lx;
+    pastmove[pmk].ly = best[idx].ly;
+  } else {
     game[best[0].lx * col + best[0].ly] = 2;
-    printf("%d %d\n", best[0].lx, best[0].ly);
+    pastmove[pmk].lx = best[0].lx;
+    pastmove[pmk].ly = best[0].ly;
   }
+  etime=clock();
+  cost=((double)(etime-stime))/CLOCKS_PER_SEC;
   space--;
   return 0;
 }
 int cover() {
-    for (int i = 0; i < row; i++) {
-      for (int j = 0; j < col; j++) {
-        cov[i * col + j] = 0;
-        if (game[i * col + j] == 1 || game[i * col + j] == 2) {
-          for (int a = i - 2; a <= i + 2; a++) {
-            if (a >= 0 && a < row)
-              cov[a * col + j] = 1;
-            for (int b = j - 2; b <= j + 2; b++) {
-              if (a >= 0 && a < row && b >= 0 && b < col)
-                cov[a * col + b] = 1;
-            }
-          }
-          for (int a = j - 2; a <= j + 2; a++) {
-            if (a >= 0 && a < col)
-              cov[i * col + a] = 1;
-            for (int b = i - 2; b <= i + 2; b++) {
-              if (a >= 0 && a < row && b >= 0 && b < col)
-                cov[b * col + a] = 1;
-            }
-          }
+  memset(cov, 0, row * col * sizeof(int));
+  /*for (int i = 0; i < row; i++){
+    for (int j = 0; j < col; j++){
+      cov[i * col + j] = 0;
+    }
+  }*/
+  for (int i = 0; i < row; i++) {
+    for (int j = 0; j < col; j++) {
+      if (game[i * col + j] != 0) {
+        for (int a = i - COVER_RANGE; a <= i + COVER_RANGE; a++) {
+          if (a >= 0 && a < row)
+            cov[a * col + j] += 1;
         }
+        for (int b = j - COVER_RANGE; b <= j + COVER_RANGE; b++) {
+          if (b >= 0 && b < col)
+            cov[i * col + b] += 1;
+        }
+        for (int a = i - COVER_RANGE, b = j - COVER_RANGE; a <= i + COVER_RANGE && b <= j + COVER_RANGE; a++, b++) {
+          if (a >= 0 && a < row && b >= 0 && b < col)
+            cov[a * col + b] += 1;
+        }
+        for (int a = i - COVER_RANGE, b = j + COVER_RANGE; a <= i + COVER_RANGE && b >= j - COVER_RANGE; a++, b--)
+          if (a >= 0 && a < row && b >= 0 && b < col)
+            cov[a * col + b] += 1;
       }
     }
+  }
   return 0;
 }
 long long scor() {
@@ -299,13 +350,12 @@ long long scor() {
     for (int j = 0; j < col; j++) {
       for (int k = 0; k < sizeof(load) / sizeof(load[0]); k++) {
         if (game[i * col + j] == load[k].mov[0]) {
-          for (int l = 1; l < sizeof(load[k].mov) / sizeof(load[k].mov[0]);
-               l++) {
+          for (int l = 0; l < load[k].size; l++) {
             if (j + l >= col || i + l >= row)
               break;
-            if (game[(i + l) * col + j + l] != load[k].mov[l])
+            else if (game[(i + l) * col + j + l] != load[k].mov[l])
               break;
-            if (l == sizeof(load[k].mov) / sizeof(load[k].mov[0]) - 1) {
+            else if (l == load[k].size - 1) {
               score += load[k].value;
             }
           }
@@ -319,13 +369,12 @@ long long scor() {
     for (int j = 0; j < col; j++) {
       for (int k = 0; k < sizeof(load) / sizeof(load[0]); k++) {
         if (game[i * col + j] == load[k].mov[0]) {
-          for (int l = 1; l < sizeof(load[k].mov) / sizeof(load[k].mov[0]);
-               l++) {
+          for (int l = 0; l < load[k].size; l++) {
             if (j - l < 0 || i + l >= row)
               break;
-            if (game[(i + l) * col + j - l] != load[k].mov[l])
+            else if (game[(i + l) * col + j - l] != load[k].mov[l])
               break;
-            if (l == sizeof(load[k].mov) / sizeof(load[k].mov[0]) - 1) {
+            else if (l == load[k].size - 1) {
               score += load[k].value;
             }
           }
@@ -339,13 +388,12 @@ long long scor() {
     for (int j = 0; j < col; j++) {
       for (int k = 0; k < sizeof(load) / sizeof(load[0]); k++) {
         if (game[i * col + j] == load[k].mov[0]) {
-          for (int l = 1; l < sizeof(load[k].mov) / sizeof(load[k].mov[0]);
-               l++) {
+          for (int l = 0; l < load[k].size; l++) {
             if (j + l >= col)
               break;
-            if (game[i * col + j + l] != load[k].mov[l])
+            else if (game[i * col + j + l] != load[k].mov[l])
               break;
-            if (l == sizeof(load[k].mov) / sizeof(load[k].mov[0]) - 1) {
+            else if (l == load[k].size - 1) {
               score += load[k].value;
             }
           }
@@ -359,13 +407,12 @@ long long scor() {
     for (int j = 0; j < col; j++) {
       for (int k = 0; k < sizeof(load) / sizeof(load[0]); k++) {
         if (game[i * col + j] == load[k].mov[0]) {
-          for (int l = 1; l < sizeof(load[k].mov) / sizeof(load[k].mov[0]);
-               l++) {
+          for (int l = 0; l < load[k].size; l++) {
             if (i + l >= row)
               break;
-            if (game[(i + l) * col + j] != load[k].mov[l])
+            else if (game[(i + l) * col + j] != load[k].mov[l])
               break;
-            if (l == sizeof(load[k].mov) / sizeof(load[k].mov[0]) - 1) {
+            else if (l == load[k].size - 1) {
               score += load[k].value;
             }
           }
@@ -375,25 +422,28 @@ long long scor() {
   }
   return score;
 }
-long long minimax(int aplha, int beta, int depth, int player) {
-  if (depth == 0 || space == 0) {
+long long minimax(long long alpha, long long beta, int depth, int player) {
+  ttime++;
+  if (depth == 0 || space == 0 || check() != 0) {
     return scor();
   }
+  cover();
+  int cov_2[row * col];
+  memcpy(cov_2, cov, row * col * sizeof(int));
   if (player == 2) {
     brk = 0;
     long long best = LLONG_MIN;
-    cover();
     for (int i = 0; i < row && !brk; i++) {
       for (int j = 0; j < col && !brk; j++) {
-        if (cov[i * col + j] == 1 && game[i * col + j] == 0) {
+        if (cov_2[i * col + j] != 0 && game[i * col + j] == 0) {
           game[i * col + j] = 2;
           space--;
-          long long value = minimax(aplha, beta, depth - 1, 1);
+          long long value = minimax(alpha, beta, depth - 1, 1);
           best = fmax(best, value);
-          aplha = fmax(aplha, best);
+          alpha = fmax(alpha, best);
           game[i * col + j] = 0;
           space++;
-          if (beta <= aplha) {
+          if (beta <= alpha) {
             brk = 1;
             break;
           }
@@ -404,18 +454,17 @@ long long minimax(int aplha, int beta, int depth, int player) {
   } else {
     brk = 0;
     long long best = LLONG_MAX;
-    cover();
     for (int i = 0; i < row && !brk; i++) {
       for (int j = 0; j < col && !brk; j++) {
-        if (cov[i * col + j] == 1 && game[i * col + j] == 0) {
+        if (cov_2[i * col + j] != 0 && game[i * col + j] == 0) {
           game[i * col + j] = 1;
           space--;
-          long long value = minimax(aplha, beta, depth - 1, 2);
+          long long value = minimax(alpha, beta, depth - 1, 2);
           best = fmin(best, value);
           beta = fmin(beta, best);
           game[i * col + j] = 0;
           space++;
-          if (beta <= aplha) {
+          if (beta <= alpha) {
             brk = 1;
             break;
           }
