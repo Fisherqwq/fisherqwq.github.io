@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Editor</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #121214; color: #e1e1e6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background-color: #202024; padding: 2rem; border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); width: 100%; max-width: 400px; box-sizing: border-box; }
+        h1 { text-align: center; color: #04d361; font-size: 1.5rem; margin-top: 0; }
+        .hidden { display: none !important; }
+        .input-group { margin-bottom: 1.2rem; }
+        label { display: block; margin-bottom: 0.5rem; color: #a8a8b3; font-size: 0.9rem; }
+        input { width: 100%; padding: 0.75rem; background-color: #121214; border: 2px solid #29292e; color: #fff; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }
+        input:focus { outline: none; border-color: #04d361; }
+        
+        button { width: 100%; background-color: #04d361; color: #121214; border: none; padding: 0.75rem; font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #06b956; }
+        
+        .btn-logout { background-color: #29292e; color: #f75a68; border: 2px solid #f75a68; margin-top: 0.75rem; }
+        .btn-logout:hover { background-color: #f75a68; color: #121214; }
+
+        .error-msg { text-align: center; margin-top: 1rem; min-height: 1.2rem; font-size: 0.9rem; color: #f75a68; }
+        .stat-container { background: #29292e; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+
+    <div id="loginScreen" class="card">
+        <h1>Action Required</h1>
+        <div class="input-group">
+            <label for="passwordField">Enter Password</label>
+            <input type="password" id="passwordField" placeholder="••••••••">
+        </div>
+        <button id="loginBtn">Unlock Dashboard</button>
+        <div id="loginError" class="error-msg"></div>
+    </div>
+
+    <div id="dashboardScreen" class="card hidden"></div>
+
+    <script>
+        (() => {
+            const ENCRYPTED_PAYLOAD = {
+                salt: "Z6zwo5e1FhNIQ9ZQYHAwJw==",
+                iv: "E4C8UN2JGm/QtY1h",
+                data: "da30YrR8qh0I44bmbKbbeZ+QwKyti9Klcv/Xy2iUiGA1fsXFLCyRK7yHF8yiygvwANBLeg6nsnN0egIJ8vO5snvJbaiRfcgeLqSwChb7xXaj5lu89hBAn+z2T49z+PcNpIm1h106i0MKrVO4gE1AGKDLvIko1Q6waS8aHLCrxl2s+1h++NNaj+FsjOlxtG82lCH3lUYY4MerCdhfxjhzBNlCxSEMcNomo7z4D/ky5hql6w+XYeV8lGLo0BZZGc2eh/zMP45Vx1fPqpYZ5tTgdOWFHTJjTwBuU5uQr+9x6vHqrzmmzn8FmB2dK5t/ii/Gb56Wph3cWhOI618w4e3hopbUAuSKE4MIWBK71UdTtM3vtRQB6uVNuB/g61R9I19XXMigkUvWtws3lqfQvm27BHfTIEpWoJlonDybGyB2wyDO3DcnCb/uzwMqM+AzUCY6XvPYxfEVJuOiwhYI/ZDf4VehXr0Ygp7iUENK+CfDZlOgID0aJZS1EfKWO9r9lAwB4BNnLEz8rebuc4r7qK+NcHYs9BGjpj5yThWzC5rRX5oSHKmeFiB+17gmM8JqeDlRQOeJIuwNvxb8ttW1m064m58W50Cka6ckf2tzKpibO1fRiXWCRuKKh7W4sGU8P6wsQlkbYTapQaDcWPgYnBmzzNmm1IcXX6Za410eue/jAAqHiVuuZr0EvjA+BoUs/uWvzvogUV6NEgrl4QprqnkSbvmo2qM6Bce0ZXUEcN+THv4oDc0NOpsknnX/L2Eikoc="
+            };
+
+            const loginScreen = document.getElementById('loginScreen');
+            const dashboardScreen = document.getElementById('dashboardScreen');
+            const passwordField = document.getElementById('passwordField');
+            const loginError = document.getElementById('loginError');
+            const loginBtn = document.getElementById('loginBtn');
+
+            function base64ToBuf(b64) {
+                const binary = atob(b64);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                return bytes;
+            }
+
+            async function deriveKey(password, salt) {
+                const enc = new TextEncoder();
+                const keyMaterial = await crypto.subtle.importKey(
+                    'raw',
+                    enc.encode(password),
+                    'PBKDF2',
+                    false,
+                    ['deriveKey']
+                );
+
+                return await crypto.subtle.deriveKey(
+                    { name: 'PBKDF2', salt: salt, iterations: 310000, hash: 'SHA-256' },
+                    keyMaterial,
+                    { name: 'AES-GCM', length: 256 },
+                    false,
+                    ['decrypt']
+                );
+            }
+
+            async function decryptDashboard(password) {
+                const salt = base64ToBuf(ENCRYPTED_PAYLOAD.salt);
+                const iv = base64ToBuf(ENCRYPTED_PAYLOAD.iv);
+                const data = base64ToBuf(ENCRYPTED_PAYLOAD.data);
+                const key = await deriveKey(password, salt);
+
+                try {
+                    const decrypted = await crypto.subtle.decrypt(
+                        { name: 'AES-GCM', iv: iv },
+                        key,
+                        data
+                    );
+                    return new TextDecoder().decode(decrypted);
+                } catch (e) {
+                    throw new Error('Invalid password or corrupted payload');
+                }
+            }
+
+            async function attemptLogin() {
+                const password = passwordField.value;
+                if (!password) {
+                    loginError.textContent = 'Please enter a password.';
+                    return;
+                }
+
+                loginError.textContent = 'Decrypting...';
+
+                try {
+                    const dashboardHtml = await decryptDashboard(password);
+
+                    dashboardScreen.innerHTML = dashboardHtml;
+                    dashboardScreen.classList.remove('hidden');
+                    loginScreen.classList.add('hidden');
+
+                    document.getElementById('saveBtn').addEventListener('click', saveData);
+                    document.getElementById('logoutBtn').addEventListener('click', logout);
+                    loadData();
+
+                    passwordField.value = '';
+                    loginError.textContent = '';
+                } catch (e) {
+                    console.error(e);
+                    loginError.textContent = 'Invalid password or data corrupted.';
+                }
+            }
+
+            function loadData() {
+                document.getElementById('failTimes').value = localStorage.getItem('failTimes') || '0';
+                document.getElementById('dumbScore').value = localStorage.getItem('dumbScore') || '0';
+                document.getElementById('wordPerSec').value = localStorage.getItem('wordPerSec') || '0';
+            }
+
+            function saveData() {
+                localStorage.setItem('failTimes', document.getElementById('failTimes').value);
+                localStorage.setItem('dumbScore', document.getElementById('dumbScore').value);
+                localStorage.setItem('wordPerSec', document.getElementById('wordPerSec').value);
+
+                const status = document.getElementById('saveStatus');
+                status.textContent = 'Changes saved securely!';
+                setTimeout(() => status.textContent = '', 2000);
+            }
+
+            function logout() {
+                window.location.reload();
+            }
+
+            loginBtn.addEventListener('click', attemptLogin);
+            passwordField.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') attemptLogin();
+            });
+        })();
+    </script>
+</body>
+</html>
