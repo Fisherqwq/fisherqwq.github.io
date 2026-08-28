@@ -1,5 +1,6 @@
 #include <limits.h>
 #include <malloc.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,11 +9,10 @@
 #include <time.h>
 #define MAX_DEPTH 5
 #define SIZE 15
-#define COVER_RANGE 3
 int *game, *cov, *cov_1;
 int n, m, k, i, j, l, c, p, r, s, t, u, v, w, x, y, z,
     col = SIZE, row = SIZE, min, con, space, brk = 0, pmk = 0;
-long long maxx,ttime;
+long long maxx;
 double cost;
 clock_t stime, etime;
 typedef struct {
@@ -69,29 +69,29 @@ movn load[] = {
     // 必赢
     {{2, 2, 2, 2, 2}, 5, 2000000000, "五"},
     // 严重威胁
-    {{0, 2, 2, 2, 2, 0}, 6, 100000000, "活四"},
-    {{2, 2, 2, 2, 0}, 5, 50000000, "活四"},
-    {{2, 2, 2, 0, 2}, 5, 10000000, "活四"},
-    {{2, 0, 2, 2, 2}, 5, 10000000, "活四"},
-    {{2, 2, 0, 2, 2}, 5, 10000000, "活四"},
-    {{0, 2, 2, 2, 2}, 5, 10000000, "活四"},
+    {{0, 2, 2, 2, 2, 0}, 6, 99999999, "活四"},
+    {{2, 2, 2, 2, 0}, 5, 49999999, "活四"},
+    {{2, 2, 2, 0, 2}, 5, 9999999, "活四"},
+    {{2, 0, 2, 2, 2}, 5, 9999999, "活四"},
+    {{2, 2, 0, 2, 2}, 5, 9999999, "活四"},
+    {{0, 2, 2, 2, 2}, 5, 9999999, "活四"},
     // 威胁
-    {{0, 2, 2, 2, 0}, 5, 1000000, "活三"},
-    {{2, 2, 2, 2}, 4, 500000, "死四"},
-    {{2, 2, 0, 2}, 4, 100000, "跳四"},
-    {{2, 0, 2, 2}, 4, 100000, "跳四"},
-    {{0, 2, 2, 2, 1}, 5, 100000, "三"},
-    {{1, 2, 2, 2, 0}, 5, 100000, "三"},
-    {{2, 2, 2}, 3, 1000, "死三"},
+    {{0, 2, 2, 2, 0}, 5, 999999, "活三"},
+    {{2, 2, 2, 2}, 4, 499999, "死四"},
+    {{2, 2, 0, 2}, 4, 99999, "跳四"},
+    {{2, 0, 2, 2}, 4, 99999, "跳四"},
+    {{0, 2, 2, 2, 1}, 5, 99999, "三"},
+    {{1, 2, 2, 2, 0}, 5, 99999, "三"},
+    {{2, 2, 2}, 3, 999, "死三"},
     // 一般
-    {{0, 2, 2, 0}, 4, 2000, "活二"},
-    {{0, 2, 0, 2, 0}, 5, 1000, "活二"},
-    {{0, 2, 2, 1}, 4, 100, "活二"},
-    {{1, 2, 2, 0}, 4, 100, "活二"},
-    {{1, 2, 0, 2}, 4, 100, "活二"},
-    {{2, 0, 2, 1}, 4, 100, "活二"},
-    {{2, 2}, 2, 10, "死二"},
-    {{0, 2, 0}, 3, 10, "活一"},
+    {{0, 2, 2, 0}, 4, 1999, "活二"},
+    {{0, 2, 0, 2, 0}, 5, 999, "活二"},
+    {{0, 2, 2, 1}, 4, 99, "活二"},
+    {{1, 2, 2, 0}, 4, 99, "活二"},
+    {{1, 2, 0, 2}, 4, 99, "活二"},
+    {{2, 0, 2, 1}, 4, 99, "活二"},
+    {{2, 2}, 2, 9, "死二"},
+    {{0, 2, 0}, 3, 9, "活一"},
     {{0, 2, 1}, 3, 5, "活一"},
     {{1, 2, 0}, 3, 5, "活一"},
     {{2}, 1, 1, "死一"},
@@ -236,26 +236,20 @@ int screen() {
     }
     printf("\n");
   }
-  for (i = 0; i < row; i++) {
+  /*for (i = 0; i < row; i++) {
     for (j = 0; j < col; j++) {
-      if(cov_1[i * col + j]<10){
-        printf("%d ", cov_1[i * col + j]);
-      }
-      else{
-        printf("%d", cov_1[i * col + j]);
-      }
+      printf("%d ", cov_1[i * col + j]);
     }
     printf("\n");
-  }
-  printf("time:%lfs",cost);
-  printf("score:%lld", scor());
-  printf("caltime:%lld\n",ttime);
+  }*/
+  printf("Cost:%lfs\n",cost);
+  //printf("score:%lld\n", scor());
   return 0;
 }
 int pmove() {
   printf("Player turn:");
   scanf("%d %d", &x, &y);
-  if (game[x * col + y] == 0&&x>=0&&x<row&&y>=0&&y<col) {
+  if (game[x * col + y] == 0) {
     game[x * col + y] = 1;
     space--;
     pastmove[pmk].lx = x;
@@ -274,10 +268,9 @@ int rmove() {
   bestmove best[col * row];
   memset(best, -1, sizeof(best));
   stime=clock();
-  ttime=0;
   for (int i = 0; i < row; i++) {
     for (int j = 0; j < col; j++) {
-      if (cov_1[i * col + j] != 0 && game[i * col + j] == 0) {
+      if (cov_1[i * col + j] == 1 && game[i * col + j] == 0) {
         game[i * col + j] = 2;
         space--;
         long long value = minimax(INT_MIN, INT_MAX, MAX_DEPTH, 1);
@@ -323,21 +316,21 @@ int cover() {
   for (int i = 0; i < row; i++) {
     for (int j = 0; j < col; j++) {
       if (game[i * col + j] != 0) {
-        for (int a = i - COVER_RANGE; a <= i + COVER_RANGE; a++) {
+        for (int a = i - 2; a <= i + 2; a++) {
           if (a >= 0 && a < row)
-            cov[a * col + j] += 1;
+            cov[a * col + j] = 1;
         }
-        for (int b = j - COVER_RANGE; b <= j + COVER_RANGE; b++) {
+        for (int b = j - 2; b <= j + 2; b++) {
           if (b >= 0 && b < col)
-            cov[i * col + b] += 1;
+            cov[i * col + b] = 1;
         }
-        for (int a = i - COVER_RANGE, b = j - COVER_RANGE; a <= i + COVER_RANGE && b <= j + COVER_RANGE; a++, b++) {
+        for (int a = i - 2, b = j - 2; a <= i + 2 && b <= j + 2; a++, b++) {
           if (a >= 0 && a < row && b >= 0 && b < col)
-            cov[a * col + b] += 1;
+            cov[a * col + b] = 1;
         }
-        for (int a = i - COVER_RANGE, b = j + COVER_RANGE; a <= i + COVER_RANGE && b >= j - COVER_RANGE; a++, b--)
+        for (int a = i - 2, b = j + 2; a <= i + 2 && b >= j - 2; a++, b--)
           if (a >= 0 && a < row && b >= 0 && b < col)
-            cov[a * col + b] += 1;
+            cov[a * col + b] = 1;
       }
     }
   }
@@ -423,19 +416,16 @@ long long scor() {
   return score;
 }
 long long minimax(long long alpha, long long beta, int depth, int player) {
-  ttime++;
   if (depth == 0 || space == 0 || check() != 0) {
     return scor();
   }
   cover();
-  int cov_2[row * col];
-  memcpy(cov_2, cov, row * col * sizeof(int));
   if (player == 2) {
     brk = 0;
     long long best = LLONG_MIN;
     for (int i = 0; i < row && !brk; i++) {
       for (int j = 0; j < col && !brk; j++) {
-        if (cov_2[i * col + j] != 0 && game[i * col + j] == 0) {
+        if (cov[i * col + j] == 1 && game[i * col + j] == 0) {
           game[i * col + j] = 2;
           space--;
           long long value = minimax(alpha, beta, depth - 1, 1);
@@ -456,7 +446,7 @@ long long minimax(long long alpha, long long beta, int depth, int player) {
     long long best = LLONG_MAX;
     for (int i = 0; i < row && !brk; i++) {
       for (int j = 0; j < col && !brk; j++) {
-        if (cov_2[i * col + j] != 0 && game[i * col + j] == 0) {
+        if (cov[i * col + j] == 1 && game[i * col + j] == 0) {
           game[i * col + j] = 1;
           space--;
           long long value = minimax(alpha, beta, depth - 1, 2);
@@ -476,9 +466,35 @@ long long minimax(long long alpha, long long beta, int depth, int player) {
 }
 void win() {
   screen();
-  printf("You win!\n");
+  switch (rand()%3){
+    case 0:
+      printf("You win!\n");
+      break;
+    case 1:
+      printf("You are the winner!\n");
+      break;
+    case 2:
+      printf("You are the champion!\n");
+      break;
+  }
 }
 void lose() {
   screen();
-  printf("You lose!\n");
+  switch(rand()%5){
+    case 0:
+      printf("You lose!\n");
+      break;
+    case 1:
+      printf("You are the loser!\n");
+      break;
+    case 2:
+      printf("You stupid!\n");
+      break;
+    case 3:
+      printf("How stupid you are!\n");
+      break;
+    case 4:
+      printf("You are the worst!\n");
+      break;
+  }
 }
