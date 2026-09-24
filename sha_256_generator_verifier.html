@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHA-256 Generator & Verifier | Secure Client-Side Cryptography</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        },
+                        accent: {
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Custom Micro-Styles & Scrollbar -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 0.8);
+        }
+
+        /* Drag & Drop Pulse Animation */
+        @keyframes borderPulse {
+            0%, 100% { border-color: rgba(59, 130, 246, 0.4); }
+            50% { border-color: rgba(59, 130, 246, 1); }
+        }
+        .drag-active {
+            animation: borderPulse 1.5s infinite;
+            background-color: rgba(59, 130, 246, 0.08) !important;
+        }
+
+        /* Glow effects */
+        .glow-green {
+            box-shadow: 0 0 20px -5px rgba(34, 197, 94, 0.3);
+        }
+        .glow-red {
+            box-shadow: 0 0 20px -5px rgba(239, 68, 68, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-accent-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                        HashPulse <span class="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20 font-mono font-medium">SHA-256</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Client-Side Cryptographic Tooling</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Client Side Security Badge -->
+                <div class="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    100% Private (No Uploads)
+                </div>
+
+                <!-- Theme Switcher -->
+                <button id="themeToggleBtn" title="Toggle Theme" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors">
+                    <svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    <svg id="moonIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- Navigation Tabs -->
+        <div class="flex flex-wrap border-b border-slate-200 dark:border-slate-800 mb-8 gap-2">
+            <button id="tabTextBtn" onclick="switchTab('text')" class="tab-btn active border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 font-medium px-4 py-3 text-sm sm:text-base flex items-center gap-2 transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Text / HMAC Hash
+            </button>
+            <button id="tabFileBtn" onclick="switchTab('file')" class="tab-btn text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium px-4 py-3 text-sm sm:text-base flex items-center gap-2 transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+                File Checksum
+            </button>
+            <button id="tabVerifyBtn" onclick="switchTab('verify')" class="tab-btn text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium px-4 py-3 text-sm sm:text-base flex items-center gap-2 transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Hash Verifier
+            </button>
+        </div>
+
+        <!-- ================= TAB 1: TEXT / HMAC HASH ================= -->
+        <div id="tabTextContent" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Input Area -->
+                <div class="lg:col-span-7 space-y-4">
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="flex items-center justify-between mb-3">
+                            <label for="textInput" class="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                Plaintext Input
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button onclick="insertSampleText()" class="text-xs text-accent-500 hover:text-accent-600 dark:text-accent-400 font-medium underline">Load Sample</button>
+                                <span class="text-slate-300 dark:text-slate-700">•</span>
+                                <button onclick="clearTextInput()" class="text-xs text-red-500 hover:text-red-600 font-medium">Clear</button>
+                            </div>
+                        </div>
+
+                        <textarea id="textInput" rows="7" placeholder="Type or paste plain text here to compute SHA-256 hash in real-time..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 text-slate-800 dark:text-slate-100 font-mono text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all resize-y"></textarea>
+
+                        <!-- Stats Bar -->
+                        <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-2 px-1">
+                            <div class="flex gap-4">
+                                <span>Length: <strong id="charCount" class="text-slate-700 dark:text-slate-200">0</strong> chars</span>
+                                <span>Size: <strong id="byteCount" class="text-slate-700 dark:text-slate-200">0</strong> bytes</span>
+                            </div>
+                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">UTF-8 Encoded</span>
+                        </div>
+                    </div>
+
+                    <!-- HMAC Secret Key Panel (Optional) -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="hmacToggle" onchange="toggleHmacMode()" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800">
+                                <label for="hmacToggle" class="text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    Enable HMAC Mode (Keyed-Hash)
+                                </label>
+                            </div>
+                            <span class="text-xs text-slate-400">RFC 2104 compliant</span>
+                        </div>
+
+                        <div id="hmacSecretContainer" class="hidden pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+                            <label class="text-xs font-medium text-slate-600 dark:text-slate-400">Secret Key / Salt</label>
+                            <div class="flex gap-2">
+                                <input type="password" id="hmacKey" placeholder="Enter secret key..." oninput="updateTextHash()" class="flex-grow bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm font-mono text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                                <button onclick="toggleHmacKeyVisibility()" id="toggleKeyVisBtn" title="Show/Hide Key" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-medium transition-colors">Show</button>
+                                <button onclick="generateRandomKey()" title="Generate Random Key" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-medium transition-colors">Random</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Output & Formatting Controls -->
+                <div class="lg:col-span-5 space-y-4">
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full space-y-4">
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                                <span class="text-sm font-semibold text-slate-700 dark:text-slate-300" id="outputHashTitle">Calculated Hash</span>
+                                <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs">
+                                    <button onclick="setFormat('hex')" id="formatHexBtn" class="px-2.5 py-1 rounded-md font-medium transition-all bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs">HEX</button>
+                                    <button onclick="setFormat('base64')" id="formatBase64Btn" class="px-2.5 py-1 rounded-md font-medium transition-all text-slate-500 dark:text-slate-400">Base64</button>
+                                </div>
+                            </div>
+
+                            <!-- Case selector for HEX -->
+                            <div id="caseToggleRow" class="flex items-center justify-between text-xs text-slate-500">
+                                <span>Output Lettercase</span>
+                                <div class="flex items-center gap-2">
+                                    <label class="cursor-pointer flex items-center gap-1">
+                                        <input type="radio" name="letterCase" value="lower" checked onchange="setCase('lower')" class="text-brand-600 focus:ring-brand-500"> Lowercase
+                                    </label>
+                                    <label class="cursor-pointer flex items-center gap-1">
+                                        <input type="radio" name="letterCase" value="upper" onchange="setCase('upper')" class="text-brand-600 focus:ring-brand-500"> UPPERCASE
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Result Hash Display Box -->
+                            <div class="relative group">
+                                <div id="hashOutput" class="w-full min-h-[120px] bg-slate-900 text-emerald-400 rounded-xl p-4 font-mono text-sm break-all leading-relaxed flex items-center justify-center text-center select-all border border-slate-800 shadow-inner">
+                                    e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="space-y-2 pt-2">
+                            <button onclick="copyHashResult()" class="w-full py-3 px-4 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl shadow-md shadow-brand-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
+                                Copy Hash String
+                            </button>
+                            <button onclick="sendToVerifier()" class="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                </svg>
+                                Send to Hash Verifier Tool
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: FILE HASHING ================= -->
+        <div id="tabFileContent" class="tab-content hidden space-y-6">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                <!-- Dropzone Area -->
+                <div id="dropZone" onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-8 sm:p-12 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-4 group">
+                    <input type="file" id="fileInput" onchange="handleFileSelect(event)" class="hidden">
+                    <div class="w-16 h-16 rounded-2xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-base font-semibold text-slate-800 dark:text-slate-200">
+                            Drag & Drop file here, or <span class="text-brand-600 dark:text-brand-400 underline">Browse</span>
+                        </p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Calculates SHA-256 hash completely locally in your browser. Any file size supported.</p>
+                    </div>
+                </div>
+
+                <!-- File Details & Progress Card -->
+                <div id="fileDetailsCard" class="hidden bg-slate-50 dark:bg-slate-950 rounded-xl p-5 border border-slate-200 dark:border-slate-800 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="p-3 bg-slate-200 dark:bg-slate-800 rounded-xl text-slate-700 dark:text-slate-300">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 id="fileName" class="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate max-w-xs sm:max-w-md">Filename.ext</h4>
+                                <p id="fileSize" class="text-xs text-slate-500">0 KB</p>
+                            </div>
+                        </div>
+                        <button onclick="resetFileHash()" class="text-xs text-red-500 hover:text-red-600 font-medium">Remove File</button>
+                    </div>
+
+                    <!-- Progress Indicator -->
+                    <div id="fileProgressContainer" class="space-y-1.5 hidden">
+                        <div class="flex justify-between text-xs text-slate-500 font-medium">
+                            <span>Processing checksum...</span>
+                            <span id="fileProgressPercent">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                            <div id="fileProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-150 w-0"></div>
+                        </div>
+                    </div>
+
+                    <!-- File Hash Display -->
+                    <div id="fileHashResultContainer" class="space-y-3 pt-2 hidden">
+                        <div class="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            <span>SHA-256 File Checksum</span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="copyFileHash()" class="text-brand-600 hover:text-brand-700 dark:text-brand-400 font-medium flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                    Copy File Hash
+                                </button>
+                                <span>•</span>
+                                <button onclick="sendToFileVerifier()" class="text-accent-500 hover:text-accent-600 dark:text-accent-400 font-medium">Verify This File</button>
+                            </div>
+                        </div>
+                        <div id="fileHashOutput" class="w-full bg-slate-900 text-brand-400 rounded-xl p-4 font-mono text-sm break-all leading-relaxed select-all border border-slate-800">
+                            Processing...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: HASH VERIFIER ================= -->
+        <div id="tabVerifyContent" class="tab-content hidden space-y-6">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                <div>
+                    <h3 class="text-base font-bold text-slate-800 dark:text-slate-200">Hash Verification & Comparison</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Paste two hashes below to check if they match, or compare a newly computed hash with an expected vendor checksum.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Hash 1 Input -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
+                            <span>Calculated / First Hash (A)</span>
+                            <button onclick="clearVerifyField('hashA')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs">Clear</button>
+                        </label>
+                        <textarea id="verifyHashA" rows="4" placeholder="Paste Hash A or computed hash here..." oninput="verifyHashes()" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-mono text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:outline-none resize-none"></textarea>
+                    </div>
+
+                    <!-- Hash 2 Input -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
+                            <span>Expected / Second Hash (B)</span>
+                            <button onclick="clearVerifyField('hashB')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs">Clear</button>
+                        </label>
+                        <textarea id="verifyHashB" rows="4" placeholder="Paste Expected Hash B here..." oninput="verifyHashes()" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-mono text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:outline-none resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- Verification Status Card -->
+                <div id="verifyStatusCard" class="p-5 rounded-xl border flex items-center justify-between transition-all bg-slate-50 border-slate-200 dark:bg-slate-950 dark:border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div id="verifyStatusIcon" class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <h4 id="verifyStatusTitle" class="text-sm font-bold text-slate-700 dark:text-slate-300">Waiting for Hashes</h4>
+                            <p id="verifyStatusDesc" class="text-xs text-slate-500 dark:text-slate-400">Enter both hash values above to run real-time integrity verification.</p>
+                        </div>
+                    </div>
+                    <span id="verifyMatchBadge" class="hidden px-3 py-1 text-xs font-bold rounded-full"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= HASH HISTORY LOG ================= -->
+        <section class="mt-12 space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h2 class="text-base font-bold text-slate-800 dark:text-slate-200">Recent Hash History</h2>
+                </div>
+                <button onclick="clearHistoryLog()" class="text-xs text-slate-500 hover:text-red-500 transition-colors font-medium">Clear History</button>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-xs font-semibold border-b border-slate-200 dark:border-slate-800">
+                                <th class="py-3 px-4">Type</th>
+                                <th class="py-3 px-4">Input Preview</th>
+                                <th class="py-3 px-4">SHA-256 Hash</th>
+                                <th class="py-3 px-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs font-mono">
+                            <tr>
+                                <td colspan="4" class="py-6 text-center text-slate-400 font-sans italic">No recent hashes generated in this session.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= INFO & FAQ SECTION ================= -->
+        <section class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-sm">
+                    🔒
+                </div>
+                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Zero Server Transmission</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    All computations leverage the browser's native Web Crypto API (`crypto.subtle`). Your data, passwords, and files never leave your client device.
+                </p>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div class="w-8 h-8 rounded-lg bg-accent-500/10 text-accent-500 flex items-center justify-center font-bold text-sm">
+                    ⚡
+                </div>
+                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Hardware Accelerated</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Utilizes native C++ standard crypto algorithms built directly into modern browser engines for maximum throughput and low memory overhead.
+                </p>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center font-bold text-sm">
+                    🔑
+                </div>
+                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">HMAC-SHA256 Ready</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Sign payloads or construct secure message authentication codes using secret keys according to standard RFC 2104 specifications.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+        <p>© HashPulse Utilities • Fast, In-Browser Cryptography • SHA-256 Engine</p>
+    </footer>
+
+    <!-- Toast Notification Box -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-xl transition-all duration-300 opacity-0 transform translate-y-4 pointer-events-none text-xs font-semibold">
+        <svg id="toastIcon" class="w-4 h-4 text-emerald-400 dark:text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span id="toastMsg">Copied to clipboard!</span>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // App State
+        const state = {
+            activeTab: 'text',
+            format: 'hex', // 'hex' | 'base64'
+            letterCase: 'lower', // 'lower' | 'upper'
+            isHmac: false,
+            textHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+            fileHash: '',
+            history: []
+        };
+
+        // DOM Initialization on Window Load
+        window.onload = function() {
+            initTheme();
+            setupDragAndDrop();
+            updateTextHash();
+        };
+
+        // Theme Toggle Functionality
+        function initTheme() {
+            const themeBtn = document.getElementById('themeToggleBtn');
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+
+            // Default to dark
+            const isDark = localStorage.getItem('theme') !== 'light';
+            setTheme(isDark);
+
+            themeBtn.addEventListener('click', () => {
+                const currentIsDark = document.documentElement.classList.contains('dark');
+                setTheme(!currentIsDark);
+            });
+        }
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('sunIcon').classList.remove('hidden');
+                document.getElementById('moonIcon').classList.add('hidden');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('sunIcon').classList.add('hidden');
+                document.getElementById('moonIcon').classList.remove('hidden');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Tab Switcher
+        function switchTab(tabName) {
+            state.activeTab = tabName;
+
+            // Tabs styling
+            const tabs = ['text', 'file', 'verify'];
+            tabs.forEach(tab => {
+                const btn = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}Btn`);
+                const content = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}Content`);
+
+                if (tab === tabName) {
+                    btn.className = 'tab-btn active border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 font-medium px-4 py-3 text-sm sm:text-base flex items-center gap-2 transition-all';
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = 'tab-btn text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium px-4 py-3 text-sm sm:text-base flex items-center gap-2 transition-all';
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        // Cryptographic Core Execution Function using Web Crypto API
+        async function computeSHA256(inputData, secretKey = '') {
+            try {
+                const encoder = new TextEncoder();
+                let hashBuffer;
+
+                if (state.isHmac && secretKey.trim() !== '') {
+                    const keyData = encoder.encode(secretKey);
+                    const cryptoKey = await crypto.subtle.importKey(
+                        "raw",
+                        keyData,
+                        { name: "HMAC", hash: { name: "SHA-256" } },
+                        false,
+                        ["sign"]
+                    );
+                    const msgData = typeof inputData === 'string' ? encoder.encode(inputData) : inputData;
+                    hashBuffer = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
+                } else {
+                    const msgData = typeof inputData === 'string' ? encoder.encode(inputData) : inputData;
+                    hashBuffer = await crypto.subtle.digest("SHA-256", msgData);
+                }
+
+                return formatBuffer(hashBuffer);
+            } catch (err) {
+                console.error("Crypto execution error:", err);
+                return "Error computing hash";
+            }
+        }
+
+        // Format ArrayBuffer to Hex or Base64 based on UI state
+        function formatBuffer(buffer) {
+            const bytes = new Uint8Array(buffer);
+            if (state.format === 'base64') {
+                let binary = '';
+                for (let i = 0; i < bytes.byteLength; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                return btoa(binary);
+            } else {
+                let hex = Array.from(bytes)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+                return state.letterCase === 'upper' ? hex.toUpperCase() : hex.toLowerCase();
+            }
+        }
+
+        // Real-Time Text Hash Event Handler
+        async function updateTextHash() {
+            const textInput = document.getElementById('textInput').value;
+            const hmacKey = document.getElementById('hmacKey').value;
+
+            // Character & Byte Counter
+            document.getElementById('charCount').textContent = textInput.length.toLocaleString();
+            const byteLength = new TextEncoder().encode(textInput).length;
+            document.getElementById('byteCount').textContent = byteLength.toLocaleString();
+
+            const hash = await computeSHA256(textInput, hmacKey);
+            state.textHash = hash;
+
+            const outputEl = document.getElementById('hashOutput');
+            outputEl.textContent = hash;
+
+            // Record to History if text is not empty
+            if (textInput.trim().length > 0) {
+                addHistoryRecord('Text', textInput, hash);
+            }
+        }
+
+        // HMAC Mode Toggle
+        function toggleHmacMode() {
+            state.isHmac = document.getElementById('hmacToggle').checked;
+            const container = document.getElementById('hmacSecretContainer');
+            const title = document.getElementById('outputHashTitle');
+
+            if (state.isHmac) {
+                container.classList.remove('hidden');
+                title.textContent = 'Calculated HMAC-SHA256';
+            } else {
+                container.classList.add('hidden');
+                title.textContent = 'Calculated Hash';
+            }
+
+            updateTextHash();
+        }
+
+        function toggleHmacKeyVisibility() {
+            const keyInput = document.getElementById('hmacKey');
+            const btn = document.getElementById('toggleKeyVisBtn');
+            if (keyInput.type === 'password') {
+                keyInput.type = 'text';
+                btn.textContent = 'Hide';
+            } else {
+                keyInput.type = 'password';
+                btn.textContent = 'Show';
+            }
+        }
+
+        function generateRandomKey() {
+            const array = new Uint8Array(16);
+            crypto.getRandomValues(array);
+            const randomHex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+            document.getElementById('hmacKey').value = randomHex;
+            updateTextHash();
+            showToast('Generated 128-bit random key!');
+        }
+
+        function insertSampleText() {
+            document.getElementById('textInput').value = "The quick brown fox jumps over the lazy dog";
+            updateTextHash();
+        }
+
+        function clearTextInput() {
+            document.getElementById('textInput').value = "";
+            updateTextHash();
+        }
+
+        function setFormat(fmt) {
+            state.format = fmt;
+            const hexBtn = document.getElementById('formatHexBtn');
+            const base64Btn = document.getElementById('formatBase64Btn');
+            const caseRow = document.getElementById('caseToggleRow');
+
+            if (fmt === 'hex') {
+                hexBtn.className = 'px-2.5 py-1 rounded-md font-medium transition-all bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs';
+                base64Btn.className = 'px-2.5 py-1 rounded-md font-medium transition-all text-slate-500 dark:text-slate-400';
+                caseRow.classList.remove('hidden');
+            } else {
+                base64Btn.className = 'px-2.5 py-1 rounded-md font-medium transition-all bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs';
+                hexBtn.className = 'px-2.5 py-1 rounded-md font-medium transition-all text-slate-500 dark:text-slate-400';
+                caseRow.classList.add('hidden');
+            }
+
+            updateTextHash();
+        }
+
+        function setCase(c) {
+            state.letterCase = c;
+            updateTextHash();
+        }
+
+        // Drag & Drop File Management
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.add('drag-active');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('drag-active');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    processSelectedFile(files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                processSelectedFile(files[0]);
+            }
+        }
+
+        async function processSelectedFile(file) {
+            const detailsCard = document.getElementById('fileDetailsCard');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const progressContainer = document.getElementById('fileProgressContainer');
+            const progressBar = document.getElementById('fileProgressBar');
+            const progressPercent = document.getElementById('fileProgressPercent');
+            const resultContainer = document.getElementById('fileHashResultContainer');
+            const hashOutput = document.getElementById('fileHashOutput');
+
+            // Show details card
+            detailsCard.classList.remove('hidden');
+            fileName.textContent = file.name;
+            fileSize.textContent = formatBytes(file.size);
+
+            // Reset progress
+            progressContainer.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+            progressBar.style.width = '0%';
+            progressPercent.textContent = '0%';
+
+            try {
+                // Chunked file reading to preserve UI responsiveness
+                const chunkSize = 2 * 1024 * 1024; // 2MB
+                let offset = 0;
+                const totalSize = file.size;
+                const buffer = new Uint8Array(totalSize);
+
+                if (totalSize === 0) {
+                    const emptyHash = await computeSHA256(new Uint8Array(0));
+                    displayFileResult(emptyHash, file.name);
+                    return;
+                }
+
+                while (offset < totalSize) {
+                    const slice = file.slice(offset, offset + chunkSize);
+                    const chunkBuffer = await slice.arrayBuffer();
+                    buffer.set(new Uint8Array(chunkBuffer), offset);
+                    offset += chunkBuffer.byteLength;
+
+                    const percent = Math.min(100, Math.round((offset / totalSize) * 100));
+                    progressBar.style.width = `${percent}%`;
+                    progressPercent.textContent = `${percent}%`;
+
+                    // Briefly yield main thread
+                    await new Promise(r => setTimeout(r, 0));
+                }
+
+                const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+                const fileHashStr = formatBuffer(hashBuffer);
+
+                displayFileResult(fileHashStr, file.name);
+            } catch (err) {
+                console.error("File processing error:", err);
+                hashOutput.textContent = "Error reading file content.";
+                resultContainer.classList.remove('hidden');
+            } finally {
+                progressContainer.classList.add('hidden');
+            }
+        }
+
+        function displayFileResult(hashStr, name) {
+            state.fileHash = hashStr;
+            const resultContainer = document.getElementById('fileHashResultContainer');
+            const hashOutput = document.getElementById('fileHashOutput');
+
+            hashOutput.textContent = hashStr;
+            resultContainer.classList.remove('hidden');
+
+            addHistoryRecord('File', name, hashStr);
+        }
+
+        function resetFileHash() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileDetailsCard').classList.add('hidden');
+            state.fileHash = '';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Hash Verification Logic
+        function verifyHashes() {
+            const hashA = document.getElementById('verifyHashA').value.trim().toLowerCase();
+            const hashB = document.getElementById('verifyHashB').value.trim().toLowerCase();
+
+            const card = document.getElementById('verifyStatusCard');
+            const icon = document.getElementById('verifyStatusIcon');
+            const title = document.getElementById('verifyStatusTitle');
+            const desc = document.getElementById('verifyStatusDesc');
+            const badge = document.getElementById('verifyMatchBadge');
+
+            if (!hashA && !hashB) {
+                card.className = "p-5 rounded-xl border flex items-center justify-between transition-all bg-slate-50 border-slate-200 dark:bg-slate-950 dark:border-slate-800";
+                icon.className = "w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500";
+                icon.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                title.textContent = "Waiting for Hashes";
+                desc.textContent = "Enter both hash values above to run real-time integrity verification.";
+                badge.classList.add('hidden');
+                return;
+            }
+
+            if (!hashA || !hashB) {
+                card.className = "p-5 rounded-xl border flex items-center justify-between transition-all bg-amber-500/5 border-amber-500/20";
+                icon.className = "w-10 h-10 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center";
+                icon.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+                title.textContent = "Incomplete Input";
+                desc.textContent = "Please fill both Hash A and Hash B fields to compare.";
+                badge.classList.add('hidden');
+                return;
+            }
+
+            if (hashA === hashB) {
+                // MATCH
+                card.className = "p-5 rounded-xl border flex items-center justify-between transition-all bg-emerald-500/10 border-emerald-500/30 glow-green";
+                icon.className = "w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center";
+                icon.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                title.textContent = "INTEGRITY VERIFIED - PERFECT MATCH";
+                title.className = "text-sm font-bold text-emerald-600 dark:text-emerald-400";
+                desc.textContent = "The computed hash matches the expected checksum exactly.";
+                badge.className = "px-3 py-1 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30";
+                badge.textContent = "MATCH";
+                badge.classList.remove('hidden');
+            } else {
+                // MISMATCH
+                card.className = "p-5 rounded-xl border flex items-center justify-between transition-all bg-red-500/10 border-red-500/30 glow-red";
+                icon.className = "w-10 h-10 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center";
+                icon.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+                title.textContent = "HASH MISMATCH DETECTED";
+                title.className = "text-sm font-bold text-red-600 dark:text-red-400";
+                desc.textContent = "The hashes do not match. The data may have been altered or corrupted.";
+                badge.className = "px-3 py-1 text-xs font-bold rounded-full bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30";
+                badge.textContent = "MISMATCH";
+                badge.classList.remove('hidden');
+            }
+        }
+
+        function clearVerifyField(field) {
+            if (field === 'hashA') document.getElementById('verifyHashA').value = '';
+            if (field === 'hashB') document.getElementById('verifyHashB').value = '';
+            verifyHashes();
+        }
+
+        function sendToVerifier() {
+            document.getElementById('verifyHashA').value = state.textHash;
+            switchTab('verify');
+            verifyHashes();
+            showToast('Loaded text hash into Verifier Field A');
+        }
+
+        function sendToFileVerifier() {
+            document.getElementById('verifyHashA').value = state.fileHash;
+            switchTab('verify');
+            verifyHashes();
+            showToast('Loaded file hash into Verifier Field A');
+        }
+
+        // Clipboard Helper using standard execCommand fallback for reliable UI rendering
+        function copyToClipboard(text, successMsg = 'Copied to clipboard!') {
+            if (!text) return;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast(successMsg);
+            } catch (err) {
+                showToast('Failed to copy text.');
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        function copyHashResult() {
+            copyToClipboard(state.textHash, 'Text Hash copied to clipboard!');
+        }
+
+        function copyFileHash() {
+            copyToClipboard(state.fileHash, 'File Hash copied to clipboard!');
+        }
+
+        // Toast Notification Banner
+        let toastTimeout;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.textContent = message;
+
+            toast.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
+            }, 2500);
+        }
+
+        // History Log Tracking
+        function addHistoryRecord(type, inputVal, hash) {
+            if (!hash) return;
+
+            // Avoid duplicate contiguous records
+            if (state.history.length > 0 && state.history[0].hash === hash) {
+                return;
+            }
+
+            const snippet = inputVal.length > 25 ? inputVal.substring(0, 25) + '...' : inputVal;
+            const record = {
+                type: type,
+                snippet: snippet || '(empty)',
+                hash: hash,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+
+            state.history.unshift(record);
+            if (state.history.length > 5) {
+                state.history.pop();
+            }
+
+            renderHistoryTable();
+        }
+
+        function renderHistoryTable() {
+            const tbody = document.getElementById('historyTableBody');
+            if (state.history.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-400 font-sans italic">No recent hashes generated in this session.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = state.history.map((item, idx) => `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td class="py-3 px-4 font-sans font-medium text-slate-700 dark:text-slate-300">
+                        <span class="px-2 py-0.5 rounded-full ${item.type === 'File' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'bg-brand-500/10 text-brand-600 dark:text-brand-400'} text-[10px]">
+                            ${item.type}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-600 dark:text-slate-400 max-w-[140px] truncate" title="${item.snippet}">
+                        ${escapeHtml(item.snippet)}
+                    </td>
+                    <td class="py-3 px-4 text-emerald-600 dark:text-emerald-400 truncate max-w-[200px]" title="${item.hash}">
+                        ${item.hash}
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick="copyToClipboard('${item.hash}', 'Copied hash from history!')" class="text-xs text-slate-500 hover:text-brand-500 font-sans font-medium px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                            Copy
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function clearHistoryLog() {
+            state.history = [];
+            renderHistoryTable();
+            showToast('History log cleared');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
